@@ -62,6 +62,21 @@ public:
 		return 1.0f;
 	}
 
+	void CWeapon357::DrawHitmarker(void)
+	{
+		CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+		if (pPlayer == NULL)
+			return;
+
+#ifndef CLIENT_DLL
+		CSingleUserRecipientFilter filter(pPlayer);
+		UserMessageBegin(filter, "ShowHitmarker");
+		WRITE_BYTE(1);
+		MessageEnd();
+#endif
+	}
+
 	virtual const Vector& GetBulletSpread( void )
 	{
 		static Vector cone = VECTOR_CONE_15DEGREES;
@@ -381,25 +396,27 @@ extern bool g_bEZ2357AchievementHack;
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CWeapon357::PrimaryAttack( void )
+void CWeapon357::PrimaryAttack(void)
 {
 	// Only the player fires this way so we can cast
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+	if (!pPlayer)
+		return;
 
-	if ( !pPlayer )
+	if (!pPlayer)
 	{
 		return;
 	}
 
-	if ( m_iClip1 <= 0 )
+	if (m_iClip1 <= 0)
 	{
-		if ( !m_bFireOnEmpty )
+		if (!m_bFireOnEmpty)
 		{
 			Reload();
 		}
 		else
 		{
-			WeaponSound( EMPTY );
+			WeaponSound(EMPTY);
 			m_flNextPrimaryAttack = 0.15;
 		}
 
@@ -407,52 +424,86 @@ void CWeapon357::PrimaryAttack( void )
 	}
 
 	m_iPrimaryAttacks++;
-	gamestats->Event_WeaponFired( pPlayer, true, GetClassname() );
+	gamestats->Event_WeaponFired(pPlayer, true, GetClassname());
 
-	WeaponSound( SINGLE );
+	WeaponSound(SINGLE);
 	pPlayer->DoMuzzleFlash();
 
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
-	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+	SendWeaponAnim(ACT_VM_PRIMARYATTACK);
+	pPlayer->SetAnimation(PLAYER_ATTACK1);
 
 	m_flNextPrimaryAttack = gpGlobals->curtime + 0.75;
 	m_flNextSecondaryAttack = gpGlobals->curtime + 0.75;
 
 	m_iClip1--;
 
-	Vector vecSrc		= pPlayer->Weapon_ShootPosition();
-	Vector vecAiming	= pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );	
+	Vector vecSrc = pPlayer->Weapon_ShootPosition();
+	Vector vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
 
 #ifdef EZ2
 	// Hack for 357 achievement
 	g_bEZ2357AchievementHack = true;
 #endif
 
-	pPlayer->FireBullets( 1, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+	pPlayer->FireBullets(1, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0);
 
 #ifdef EZ2
 	// Hack for 357 achievement
 	g_bEZ2357AchievementHack = false;
 #endif
 
-	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
+	pPlayer->SetMuzzleFlashTime(gpGlobals->curtime + 0.5);
 
 	//Disorient the player
 	QAngle angles = pPlayer->GetLocalAngles();
 
-	angles.x += random->RandomInt( -1, 1 );
-	angles.y += random->RandomInt( -1, 1 );
+	angles.x += random->RandomInt(-1, 1);
+	angles.y += random->RandomInt(-1, 1);
 	angles.z = 0;
 
-	pPlayer->SnapEyeAngles( angles );
+	pPlayer->SnapEyeAngles(angles);
 
-	pPlayer->ViewPunch( QAngle( -8, random->RandomFloat( -2, 2 ), 0 ) );
+	pPlayer->ViewPunch(QAngle(-8, random->RandomFloat(-2, 2), 0));
 
-	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner() );
+	CSoundEnt::InsertSound(SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner());
 
-	if ( !m_iClip1 && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
+	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
 	{
 		// HEV suit - indicate out of ammo condition
-		pPlayer->SetSuitUpdate( "!HEV_AMO0", FALSE, 0 ); 
+		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
+	}
+
+	// Set up the vectors and traceline
+	trace_t tr;
+	Vector vecStart, vecStop, vecDir;
+
+	// Get the angles
+	AngleVectors(pPlayer->EyeAngles(), &vecDir);
+
+	// Get the vectors
+	vecStart = pPlayer->Weapon_ShootPosition();
+	vecStop = vecStart + vecDir * MAX_TRACE_LENGTH;
+
+	// Do the TraceLine
+	UTIL_TraceLine(vecStart, vecStop, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
+
+	// Check to see if we hit an NPC
+	if (tr.m_pEnt)
+	{
+		if (tr.m_pEnt->IsNPC())
+		{
+#ifndef CLIENT_DLL
+			// Light Kill: Draw ONLY if we hit an enemy NPC
+			if (pPlayer->GetDefaultRelationshipDisposition(tr.m_pEnt->Classify()) != D_HT)
+			{
+				//DevMsg( "Neutral NPC!\n" );
+			}
+			else
+			{
+				DrawHitmarker();
+			}
+#endif
+		}
 	}
 }
+

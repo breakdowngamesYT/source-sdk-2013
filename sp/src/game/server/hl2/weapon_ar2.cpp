@@ -343,6 +343,7 @@ void CWeaponAR2::PrimaryAttack( void )
 
 		BaseClass::ItemPostFrame();
 	}
+
 }
 #endif
 
@@ -375,6 +376,10 @@ void CWeaponAR2::DelayedAttack( void )
 	
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 	
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+	if (!pPlayer)
+		return;
+
 	if ( pOwner == NULL )
 		return;
 
@@ -447,6 +452,39 @@ void CWeaponAR2::DelayedAttack( void )
 	// Fire the next round
 	CWeaponAR2::DelayedAttack();
 #endif
+
+	// Set up the vectors and traceline
+	trace_t tr;
+	Vector vecStart, vecStop, vecDir;
+
+	// Get the angles
+	AngleVectors(pPlayer->EyeAngles(), &vecDir);
+
+	// Get the vectors
+	vecStart = pPlayer->Weapon_ShootPosition();
+	vecStop = vecStart + vecDir * MAX_TRACE_LENGTH;
+
+	// Do the TraceLine
+	UTIL_TraceLine(vecStart, vecStop, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
+
+	// Check to see if we hit an NPC
+	if (tr.m_pEnt)
+	{
+		if (tr.m_pEnt->IsNPC())
+		{
+#ifndef CLIENT_DLL
+			// Light Kill: Draw ONLY if we hit an enemy NPC
+			if (pPlayer->GetDefaultRelationshipDisposition(tr.m_pEnt->Classify()) != D_HT)
+			{
+				//DevMsg( "Neutral NPC!\n" );
+			}
+			else
+			{
+				DrawHitmarker();
+			}
+#endif
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------

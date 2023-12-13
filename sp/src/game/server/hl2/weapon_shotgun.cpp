@@ -67,6 +67,8 @@ public:
 		return cone;
 	}
 
+	
+
 	virtual int				GetMinBurst() { return 1; }
 	virtual int				GetMaxBurst() { return 3; }
 
@@ -599,7 +601,9 @@ Activity CWeaponShotgun::GetDrawActivity( void )
 void CWeaponShotgun::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+	if (!pPlayer)
+		return;
 
 	if (!pPlayer)
 	{
@@ -654,6 +658,8 @@ void CWeaponShotgun::PrimaryAttack( void )
 
 	m_iPrimaryAttacks++;
 	gamestats->Event_WeaponFired( pPlayer, true, GetClassname() );
+
+
 }
 
 //-----------------------------------------------------------------------------

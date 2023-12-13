@@ -47,6 +47,21 @@ public:
 	int		GetMaxBurst() { return 15; }
 #endif
 
+	void CWeaponSMG1::DrawHitmarker(void)
+	{
+		CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+		if (pPlayer == NULL)
+			return;
+
+#ifndef CLIENT_DLL
+		CSingleUserRecipientFilter filter(pPlayer);
+		UserMessageBegin(filter, "ShowHitmarker");
+		WRITE_BYTE(1);
+		MessageEnd();
+#endif
+	}
+
 	virtual void Equip( CBaseCombatCharacter *pOwner );
 	bool	Reload( void );
 
@@ -243,6 +258,8 @@ void CWeaponSMG1::FireNPCPrimaryAttack( CBaseCombatCharacter *pOperator, Vector 
 
 	pOperator->DoMuzzleFlash();
 	m_iClip1 = m_iClip1 - 1;
+
+
 }
 
 //-----------------------------------------------------------------------------
@@ -444,6 +461,8 @@ void CWeaponSMG1::SecondaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if (!pPlayer)
+		return;
 	
 	if ( pPlayer == NULL )
 		return;
@@ -507,6 +526,39 @@ void CWeaponSMG1::SecondaryAttack( void )
 
 	m_iSecondaryAttacks++;
 	gamestats->Event_WeaponFired( pPlayer, false, GetClassname() );
+
+	// Set up the vectors and traceline
+	trace_t tr;
+	Vector vecStart, vecStop, vecDir;
+
+	// Get the angles
+	AngleVectors(pPlayer->EyeAngles(), &vecDir);
+
+	// Get the vectors
+	vecStart = pPlayer->Weapon_ShootPosition();
+	vecStop = vecStart + vecDir * MAX_TRACE_LENGTH;
+
+	// Do the TraceLine
+	UTIL_TraceLine(vecStart, vecStop, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
+
+	// Check to see if we hit an NPC
+	if (tr.m_pEnt)
+	{
+		if (tr.m_pEnt->IsNPC())
+		{
+#ifndef CLIENT_DLL
+			// Light Kill: Draw ONLY if we hit an enemy NPC
+			if (pPlayer->GetDefaultRelationshipDisposition(tr.m_pEnt->Classify()) != D_HT)
+			{
+				//DevMsg( "Neutral NPC!\n" );
+			}
+			else
+			{
+				DrawHitmarker();
+			}
+#endif
+		}
+	}
 }
 
 #define	COMBINE_MIN_GRENADE_CLEAR_DIST 256

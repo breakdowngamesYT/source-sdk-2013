@@ -22,6 +22,21 @@ class CWeaponAR2 : public CHLMachineGun
 public:
 	DECLARE_CLASS( CWeaponAR2, CHLMachineGun );
 
+	void CWeaponAR2::DrawHitmarker(void)
+	{
+		CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+		if (pPlayer == NULL)
+			return;
+
+#ifndef CLIENT_DLL
+		CSingleUserRecipientFilter filter(pPlayer);
+		UserMessageBegin(filter, "ShowHitmarker");
+		WRITE_BYTE(1);
+		MessageEnd();
+#endif
+	};
+
 	CWeaponAR2();
 
 	DECLARE_SERVERCLASS();

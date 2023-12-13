@@ -299,6 +299,7 @@ Vector CWeaponSMG2::GetBulletSpread( WeaponProficiency_t proficiency )
 	const WeaponProficiencyInfo_t *pProficiencyValues = GetProficiencyValues();
 	float flModifier = (pProficiencyValues)[proficiency].spreadscale;
 	return (baseSpread * flModifier);
+
 }
 
 //-----------------------------------------------------------------------------
@@ -353,7 +354,7 @@ void CWeaponSMG2::BurstAttack( int burstSize, float cycleRate, int spentAmmoModi
 	}
 
 	// Only the player fires this way so we can cast
-	CBasePlayer * pPlayer = ToBasePlayer(GetOwner());
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
 	if (!pPlayer)
 		return;
 
@@ -448,6 +449,8 @@ void CWeaponSMG2::BurstAttack( int burstSize, float cycleRate, int spentAmmoModi
 		m_iPrimaryAttacks++;
 		gamestats->Event_WeaponFired(pOwner, true, GetClassname());
 	}
+
+
 }
 
 //-----------------------------------------------------------------------------

@@ -472,6 +472,10 @@ void CWeaponPistol::PrimaryAttack( void )
 
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 
+		CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+	if (!pPlayer)
+		return;
+
 	if( pOwner )
 	{
 		// Each time the player fires the pistol, reset the view punch. This prevents
@@ -1085,6 +1089,7 @@ void CWeaponPulsePistol::MakeTracer( const Vector &vecTracerSrc, const trace_t &
 //-----------------------------------------------------------------------------
 void CWeaponPulsePistol::PrimaryAttack( void )
 {
+
 	if (m_iClip1 < 10) // Don't allow firing if we only have one shot left
 	{
 		DryFire();
